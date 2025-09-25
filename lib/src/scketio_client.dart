@@ -288,57 +288,73 @@ class SocketioClient extends FlutterFeathersjsBase {
   ///
   ///     Use FeatherJsErrorType.{ERROR} to known what happen
   ///
-  Stream<FeathersJsEventData<T>> listen<T>(
-      {required String serviceName, required Function fromJson}) {
-    /// On created event
-    _socket.on('$serviceName created', (createdData) {
-      try {
-        T? object = fromJson(createdData);
-        eventBus.fire(FeathersJsEventData<T>(
-            data: object, type: FeathersJsEventType.created));
-      } catch (e) {
-        eventBus.fire(new FeatherJsError(
-            type: FeatherJsErrorType.IS_DESERIALIZATION_ERROR, error: e));
-      }
-    });
-
-    /// On updated event
-    _socket.on('$serviceName updated', (updatedData) {
-      try {
-        T? object = fromJson(updatedData);
-        eventBus.fire(FeathersJsEventData<T>(
-            data: object, type: FeathersJsEventType.updated));
-      } catch (e) {
-        eventBus.fire(new FeatherJsError(
-            type: FeatherJsErrorType.IS_DESERIALIZATION_ERROR, error: e));
-      }
-    });
-
-    /// On patched event
-    _socket.on('$serviceName patched', (patchedData) {
-      try {
-        T? object = fromJson(patchedData);
-        eventBus.fire(FeathersJsEventData<T>(
-            data: object, type: FeathersJsEventType.patched));
-      } catch (e) {
-        eventBus.fire(new FeatherJsError(
-            type: FeatherJsErrorType.IS_DESERIALIZATION_ERROR, error: e));
-      }
-    });
-
-    /// On removed event
-    _socket.on('$serviceName removed', (removedData) {
-      try {
-        T? object = fromJson(removedData);
-        eventBus.fire(FeathersJsEventData<T>(
-            data: object, type: FeathersJsEventType.removed));
-      } catch (e) {
-        eventBus.fire(new FeatherJsError(
-            type: FeatherJsErrorType.IS_DESERIALIZATION_ERROR, error: e));
-      }
-    });
-    return eventBus.on<FeathersJsEventData<T>>();
+Stream<FeathersJsEventData<T>> listen<T>({
+  required String serviceName,
+  required Function fromJson,
+}) {
+  // Handler references
+  void createdHandler(dynamic createdData) {
+    try {
+      T? object = fromJson(createdData);
+      eventBus.fire(FeathersJsEventData<T>(
+          data: object, type: FeathersJsEventType.created));
+    } catch (e) {
+      eventBus.fire(FeatherJsError(
+          type: FeatherJsErrorType.IS_DESERIALIZATION_ERROR, error: e));
+    }
   }
+
+  void updatedHandler(dynamic updatedData) {
+    try {
+      T? object = fromJson(updatedData);
+      eventBus.fire(FeathersJsEventData<T>(
+          data: object, type: FeathersJsEventType.updated));
+    } catch (e) {
+      eventBus.fire(FeatherJsError(
+          type: FeatherJsErrorType.IS_DESERIALIZATION_ERROR, error: e));
+    }
+  }
+
+  void patchedHandler(dynamic patchedData) {
+    try {
+      T? object = fromJson(patchedData);
+      eventBus.fire(FeathersJsEventData<T>(
+          data: object, type: FeathersJsEventType.patched));
+    } catch (e) {
+      eventBus.fire(FeatherJsError(
+          type: FeatherJsErrorType.IS_DESERIALIZATION_ERROR, error: e));
+    }
+  }
+
+  void removedHandler(dynamic removedData) {
+    try {
+      T? object = fromJson(removedData);
+      eventBus.fire(FeathersJsEventData<T>(
+          data: object, type: FeathersJsEventType.removed));
+    } catch (e) {
+      eventBus.fire(FeatherJsError(
+          type: FeatherJsErrorType.IS_DESERIALIZATION_ERROR, error: e));
+    }
+  }
+
+  // Register handlers
+  _socket.on('$serviceName created', createdHandler);
+  _socket.on('$serviceName updated', updatedHandler);
+  _socket.on('$serviceName patched', patchedHandler);
+  _socket.on('$serviceName removed', removedHandler);
+
+  // Create a stream that removes listeners on cancel/close
+  final stream = eventBus.on<FeathersJsEventData<T>>().asBroadcastStream(
+    onCancel: (sub) {
+      _socket.off('$serviceName created', createdHandler);
+      _socket.off('$serviceName updated', updatedHandler);
+      _socket.off('$serviceName patched', patchedHandler);
+      _socket.off('$serviceName removed', removedHandler);
+    },
+  );
+
+  return stream;
+}
 
   void reset({required String serviceName}) {
     _socket.off('$serviceName created');
