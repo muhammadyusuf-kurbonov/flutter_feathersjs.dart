@@ -32,19 +32,19 @@ import 'config/storage.dart';
 ///{@endtemplate}
 class FlutterFeathersjs {
   //RestClient
-  late RestClient rest;
+  RestClient? rest;
 
   // Rest client for standalone usage
-  late FlutterFeathersjsRest? standaloneRest;
+  FlutterFeathersjsRest? standaloneRest;
 
   //SocketioClient
-  late SocketioClient scketio;
+  SocketioClient? scketio;
 
   // Socketio client for standalone usage
-  late FlutterFeathersjsSocketio? standaloneSocketio;
+  FlutterFeathersjsSocketio? standaloneSocketio;
 
   // current configured client
-  late String client;
+  String client = "";
 
   ///Using singleton
   static final FlutterFeathersjs _flutterFeathersjs =
